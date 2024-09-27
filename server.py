@@ -3,32 +3,51 @@ import threading
 
 clients: list[socket] = []
 HOST = '127.0.0.1'
-PORT_WEB = 8000
+PORT = 8000
 
 def main():
-    server = startServer(HOST, PORT_WEB)
-    if(not server): return
-
-    #threading.Thread(target=webCommunication, args=[server]).start()
     
-    threading.Thread(target=webCommunication, args=[server]).start()
+    server = startServer(PORT)
+    if(not server): return
+    
+    threading.Thread(target=runMainChannel, args=[server]).start()
 
-def startServer(host: str, port: int):
+
+def startServer(port: int):
     try:
         server = socket(AF_INET, SOCK_STREAM)
-        server.bind((host, port))
+        print(HOST, port)
         server.listen()
-        print('Servidor rodando no endereço {0}:{1}'.format(host, port))
+        print('Servidor rodando no endereço {0}:{1}'.format(HOST, port))
+        
         return server
-    except:
-        print('Erro ao inicializar o servidor.')
+    except Exception as e:
+        print('Erro ao inicializar o servidor:',e)
         return None
 
-def webCommunication(server: socket):
+def runMainChannel(server: socket):
+    port = PORT
     while True:
         conn, addr = server.accept()
         clients.append(conn)
-        #print(clients)
+        print(clients)
+
+        try:
+            port += 1
+            threading.Thread(target=runParallelChannel, args=[port]).start()
+        except:
+            print('deu ruim')
+            break
+
+    print("Conexão principal encerrada.")
+    server.close()
+
+def runParallelChannel(port: int):
+    server = startServer(port)
+    if(not server): return
+
+    while True:
+        conn, addr = server.accept()
 
         try:
             message = conn.recv(1024).decode('utf-8')
@@ -69,7 +88,9 @@ def webCommunication(server: socket):
             # Fechar o socket do cliente
             conn.close()
 
-    print("Conexão encerrada.")
+    print("Conexão paralela encerrada.")
     server.close()
+
+    
 
 main()

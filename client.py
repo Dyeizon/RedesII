@@ -15,8 +15,8 @@ def main():
     
     try:
         client.connect((HOST, PORT))
-    except:
-        return print('Erro ao conectar ao servidor.')
+    except Exception as e:
+        return print('Erro ao conectar ao servidor:', e)
 
     openFile(client, FILE)
 
