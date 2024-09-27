@@ -1,20 +1,30 @@
 from socket import *
 import sys
+import threading
 
-serverSocket = socket(AF_INET, SOCK_STREAM)
+clients: list[socket] = []
 
 # Preparar o socket do servidor
+server = socket(AF_INET, SOCK_STREAM)
+
 HOST = '127.0.0.1'
-PORT = 8001
-origin = (HOST, PORT)
-serverSocket.bind(origin)
-serverSocket.listen(1)
+PORT = 8005
+
+try:
+    server.bind((HOST, PORT))
+    server.listen()
+    print('Servidor rodando no endereço {0}:{1}'.format(HOST, PORT))
+except:
+    print('Erro ao rodar o servidor.')
+    sys.exit()
 
 while True:
-    print('Servidor rodando no endereço {0}:{1}'.format(HOST, PORT))
-    connectionSocket, addr = serverSocket.accept()
+    conn, addr = server.accept()
+    clients.append(conn)
+    print(clients)
+
     try:
-        message = connectionSocket.recv(1024)
+        message = conn.recv(1024)
         
         if not message:
             break
@@ -25,27 +35,27 @@ while True:
 
         outputdata = f.read()
 
-        connectionSocket.send(b'HTTP/1.1 200 OK\r\n')
-        connectionSocket.send(b'Content-Type: text/html\r\n')
-        connectionSocket.send(b'\r\n')
+        conn.send('HTTP/1.1 200 OK\r\n'.encode('utf-8'))
+        conn.send('Content-Type: text/html\r\n'.encode('utf-8'))
+        conn.send('\r\n'.encode('utf-8'))
 
         for i in range(0, len(outputdata)):
-           connectionSocket.send(outputdata[i].encode())
+           conn.send(outputdata[i].encode('utf-8'))
 
-        connectionSocket.send("\r\n".encode())
-        connectionSocket.close()
+        conn.send("\r\n".encode('utf-8'))
+        conn.close()
 
     except IOError:
         # Enviar mensagem de resposta para arquivo não encontrado
-        connectionSocket.send(b'HTTP/1.1 404 NOT FOUND\r\n')
-        connectionSocket.send(b'Content-Type: text/html\r\n')
-        connectionSocket.send(b'\r\n')
+        conn.send('HTTP/1.1 404 NOT FOUND\r\n'.encode('utf-8'))
+        conn.send('Content-Type: text/html\r\n'.encode('utf-8'))
+        conn.send('\r\n'.encode('utf-8'))
 
-        connectionSocket.send(b'<html><body><h1>Error 404: Not Found</h1></body></html>\r\n')
+        conn.send('<html><body><h1>Error 404: Not Found</h1></body></html>\r\n'.encode('utf-8'))
 
         # Fechar o socket do cliente
-        connectionSocket.close()
+        conn.close()
 
-print("Fechando conexão")
-serverSocket.close()
+print("Conexão encerrada.")
+server.close()
 sys.exit()
