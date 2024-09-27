@@ -1,11 +1,10 @@
 from socket import *
 from sys import argv
-import threading
 
 def main():
     if(len(argv) != 4):
         print('Argumentos inconsistentes, siga o padrão:')
-        print('{0} (dest) (port) (file)'.format(argv[0]))
+        print(f'{argv[0]} [dest] [port] [filename]')
         return
     
     HOST = argv[1]
@@ -19,16 +18,26 @@ def main():
     except:
         return print('Erro ao conectar ao servidor.')
 
-    threading.Thread(target=receive, args=[client]).start()
-    threading.Thread(target=send, args=[client]).start()
+    openFile(client, FILE)
+
+    receive(client)
+
+
+def openFile(client: socket, filename: str):
+    try:
+        client.send(f'GET /{filename} HTTP/1.1'.encode('utf-8'))
+    except:
+        print('Erro ao enviar a mensagem para a renderização do arquivo')
+        return
 
 def receive(client: socket):
     while True:
         try:
             msg = client.recv(1024).decode('utf-8')
-            print(msg + '\n')
+            if(msg):
+                print(msg, end='')
         except:
-            print('Conexão perdida.\nPressione <Enter> para finalizar.')
+            print('Conexão perdida.')
             client.close()
             break
 
