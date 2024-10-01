@@ -37,18 +37,8 @@ def receive(client: socket):
             if(msg):
                 print(msg, end='')
         except:
-            print('Conexão perdida.')
-            client.close()
             break
 
-def send(client: socket):
-    while True:
-        try:
-            msg = input('\n')
-            client.send(msg.encode('utf-8'))
-
-        except:
-            return
-        
-
+    print('Conexão perdida.')
+    client.close()
 main()
