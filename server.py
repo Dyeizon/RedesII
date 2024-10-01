@@ -1,96 +1,65 @@
 from socket import *
 import threading
+import os
 
-clients: list[socket] = []
 HOST = '127.0.0.1'
 PORT = 8000
 
 def main():
-    
     server = startServer(PORT)
-    if(not server): return
+    if not server: return
     
-    threading.Thread(target=runMainChannel, args=[server]).start()
-
+    print('Servidor rodando no endereço {0}:{1}'.format(HOST, PORT))
+    
+    while True:
+        conn, addr = server.accept()
+        print(f'Conexão recebida de {addr}')
+        
+        # Cria uma nova thread para processar a solicitação
+        threading.Thread(target=runParallelChannel, args=(conn, addr)).start()
 
 def startServer(port: int):
     try:
         server = socket(AF_INET, SOCK_STREAM)
-        print(HOST, port)
+        server.bind((HOST, port))
         server.listen()
-        print('Servidor rodando no endereço {0}:{1}'.format(HOST, port))
-        
         return server
     except Exception as e:
-        print('Erro ao inicializar o servidor:',e)
+        print('Erro ao inicializar o servidor:', e)
         return None
 
-def runMainChannel(server: socket):
-    port = PORT
-    while True:
-        conn, addr = server.accept()
-        clients.append(conn)
-        print(clients)
-
-        try:
-            port += 1
-            threading.Thread(target=runParallelChannel, args=[port]).start()
-        except:
-            print('deu ruim')
-            break
-
-    print("Conexão principal encerrada.")
-    server.close()
-
-def runParallelChannel(port: int):
-    server = startServer(port)
-    if(not server): return
-
-    while True:
-        conn, addr = server.accept()
-
-        try:
-            message = conn.recv(1024).decode('utf-8')
-            
-            if not message:
-                break
-
-            filename = message.split()[1]
-            print(f'Enviando {filename} para {addr[0]}:{addr[1]}')
-            
-            f = open(filename[1:])
-
-            outputdata = f.read()
-
-            conn.send('HTTP/1.1 200 OK\r\n'.encode('utf-8'))
-            conn.send('Content-Type: text/html\r\n'.encode('utf-8'))
-            conn.send('\r\n'.encode('utf-8'))
-
-            for i in range(0, len(outputdata)):
-                conn.send(outputdata[i].encode('utf-8'))
-
-            conn.send("\r\n".encode('utf-8'))
-            conn.close()
-
-        except BrokenPipeError:
-            print('Não foi possível enviar a mensagem ao cliente.')
-            conn.close()
+def runParallelChannel(conn: socket, addr):
+    try:
+        message = conn.recv(1024).decode('utf-8')
+        
+        if not message:
+            print(f'Conexão encerrada por {addr}')
             return
 
-        except IOError:
+        filename = message.split()[1]
+        print(f'Enviando {filename} para {addr[0]}:{addr[1]}')
+        
+        # Verifica se o arquivo existe
+        if os.path.isfile(filename[1:]):
+            with open(filename[1:], 'r') as f:
+                outputdata = f.read()
+
+            conn.sendall('HTTP/1.1 200 OK\r\n'.encode('utf-8'))
+            conn.sendall('Content-Type: text/html\r\n'.encode('utf-8'))
+            conn.sendall('\r\n'.encode('utf-8'))
+            conn.sendall(outputdata.encode('utf-8'))
+        else:
             # Enviar mensagem de resposta para arquivo não encontrado
-            conn.send('HTTP/1.1 404 NOT FOUND\r\n'.encode('utf-8'))
-            conn.send('Content-Type: text/html\r\n'.encode('utf-8'))
-            conn.send('\r\n'.encode('utf-8'))
+            conn.sendall('HTTP/1.1 404 NOT FOUND\r\n'.encode('utf-8'))
+            conn.sendall('Content-Type: text/html\r\n'.encode('utf-8'))
+            conn.sendall('\r\n'.encode('utf-8'))
+            conn.sendall('<html><body><h1>Error 404: Not Found</h1></body></html>\r\n'.encode('utf-8'))
 
-            conn.send('<html><body><h1>Error 404: Not Found</h1></body></html>\r\n'.encode('utf-8'))
+    except Exception as e:
+        print(f'Erro ao processar a conexão com {addr}: {e}')
+    finally:
+        conn.close()
+        print(f'Conexão encerrada com {addr}')
 
-            # Fechar o socket do cliente
-            conn.close()
-
-    print("Conexão paralela encerrada.")
-    server.close()
-
-    
 
 main()
