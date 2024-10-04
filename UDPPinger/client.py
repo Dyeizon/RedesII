@@ -1,6 +1,7 @@
 from socket import *
-from time import sleep, time
+from time import time, sleep
 import signal
+from math import inf
 
 HOST = '127.0.0.1'
 PORT = 12000
@@ -14,7 +15,6 @@ def main():
 def handle_timeout(_a, _b):
     raise TimeoutError
 
-
 def ping(destination: socket, times: int):
     initial_time = time()
 
@@ -22,29 +22,59 @@ def ping(destination: socket, times: int):
     sent_pkgs = 0
     received_pkgs = 0
 
+    rtts = []
+
     for i in range(1, times+1):
         try:
-            sleep(0.5)
-            destination.sendto(f'Ping {i} {(time()- initial_time):.2f} segundos.'.encode('utf-8'), (HOST, PORT))
+            sleep(0.7)
+            send_time = time()
+            destination.sendto(f'Ping seq={i}'.encode('utf-8'), (HOST, PORT))
             sent_pkgs += 1
 
-            signal.setitimer(signal.ITIMER_REAL, 0.75)
+            signal.alarm(1)
 
             msg, _ = destination.recvfrom(1024)
             received_pkgs += 1
 
-            msg = msg.decode('utf-8')
-            
-            print(f'[{i}] {msg}')
+            rtt = time() - send_time
+            rtts.append(rtt)
+
+            print(f"{msg.decode('utf-8')} RTT={rtt * 1000:.3f} ms")
         
         except (ConnectionRefusedError, TimeoutError):
-            print(f'[{i}] Tempo limite excedido.')
+            print('Tempo limite excedido.')
+            signal.alarm(0)
             continue
         finally:
             signal.alarm(0)
 
     print(f'\n--- Estatísticas de ping para {HOST}:{PORT} ---')
     print(f'{sent_pkgs} pacotes transmitidos, {received_pkgs} recebidos, {((1 - received_pkgs/sent_pkgs) * 100):.0f}% de perda de pacotes, tempo de execução {(time() - initial_time):.2f}s')
+    print(f'rtt min/avg/max = {calc_min_rtt(rtts) * 1000:.3f}/{calc_avg_rtt(rtts) * 1000:.3f}/{calc_max_rtt(rtts) * 1000:.3f}')
 
+def calc_min_rtt(rtts: list):
+    minimum = float('inf')
+    for rtt in rtts:
+        if (rtt < minimum):
+            minimum = rtt
+    
+    return minimum
+
+def calc_max_rtt(rtts: list):
+    maximum = float('-inf')
+    for rtt in rtts:
+        if (rtt > maximum):
+            maximum = rtt
+    
+    return maximum
+
+def calc_avg_rtt(rtts: list):
+    sum = 0
+    count = 0
+    for rtt in rtts:
+        count += 1
+        sum += rtt
+    
+    return sum/count
 
 main()
