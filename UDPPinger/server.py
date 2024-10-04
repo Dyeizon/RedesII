@@ -1,5 +1,6 @@
 from random import randint
 from socket import *
+from time import sleep
 
 HOST = '127.0.0.1'
 PORT = 12000
@@ -16,6 +17,7 @@ while True:
     message = message.upper()
 
     if rand < 4:
+        print('PING PERDIDO')
         continue
 
     serverSocket.sendto(message, address)
