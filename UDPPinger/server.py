@@ -1,6 +1,7 @@
-from random import randint, uniform
+from random import randint
 from socket import *
-from time import sleep, time
+from time import time
+from datetime import datetime
 
 HOST = '127.0.0.1'
 PORT = 12000
@@ -8,6 +9,10 @@ PORT = 12000
 serverSocket = socket(AF_INET, SOCK_DGRAM)
 serverSocket.bind((HOST, PORT))
 print('Servidor rodando no endereço {0}:{1}'.format(HOST, PORT))
+
+def check_beat(last_ping: str) -> bool:
+    print(f'Agora: {datetime.now()} - Ping {last_ping}')
+    return True
 
 while True:
     timer = time()
@@ -19,7 +24,9 @@ while True:
     if rand < 4:
         print('PING PERDIDO')
         continue
-    
-    # Simulando atraso de 0,05s a 0.09s
 
+    message_splitted = message.decode('utf-8').split(' ')
+    last_ping = message_splitted[2] + ' ' + message_splitted[3]
+    check_beat(last_ping)
+    
     serverSocket.sendto(message, address)

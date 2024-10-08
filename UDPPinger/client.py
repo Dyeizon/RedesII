@@ -1,5 +1,6 @@
 from socket import *
 from time import time, sleep
+from datetime import datetime
 import signal
 from math import inf
 
@@ -28,7 +29,7 @@ def ping(destination: socket, times: int):
         try:
             sleep(0.7)
             send_time = time()
-            destination.sendto(f'Ping seq={i}'.encode('utf-8'), (HOST, PORT))
+            destination.sendto(f'Ping seq={i} {datetime.now()}'.encode('utf-8'), (HOST, PORT))
             sent_pkgs += 1
 
             signal.alarm(1)
@@ -39,7 +40,7 @@ def ping(destination: socket, times: int):
             rtt = time() - send_time
             rtts.append(rtt)
 
-            print(f"{msg.decode('utf-8')} RTT={rtt * 1000:.3f} ms")
+            print(f"{msg.decode('utf-8')} RTT={rtt * 1000:.3f}ms")
         
         except (ConnectionRefusedError, TimeoutError):
             print('Tempo limite excedido.')
@@ -50,10 +51,12 @@ def ping(destination: socket, times: int):
 
     print(f'\n--- Estatísticas de ping para {HOST}:{PORT} ---')
     print(f'{sent_pkgs} pacotes transmitidos, {received_pkgs} recebidos, {((1 - received_pkgs/sent_pkgs) * 100):.0f}% de perda de pacotes, tempo de execução {(time() - initial_time):.2f}s')
-    print(f'rtt min/avg/max = {calc_min_rtt(rtts) * 1000:.3f}/{calc_avg_rtt(rtts) * 1000:.3f}/{calc_max_rtt(rtts) * 1000:.3f}')
+    print(f'rtt min/avg/max = {calc_min_rtt(rtts) * 1000:.3f}/{calc_avg_rtt(rtts) * 1000:.3f}/{calc_max_rtt(rtts) * 1000:.3f} ms')
 
 def calc_min_rtt(rtts: list):
+    if len(rtts) == 0: return 0
     minimum = float('inf')
+
     for rtt in rtts:
         if (rtt < minimum):
             minimum = rtt
@@ -61,6 +64,7 @@ def calc_min_rtt(rtts: list):
     return minimum
 
 def calc_max_rtt(rtts: list):
+    if len(rtts) == 0: return 0
     maximum = float('-inf')
     for rtt in rtts:
         if (rtt > maximum):
@@ -69,12 +73,13 @@ def calc_max_rtt(rtts: list):
     return maximum
 
 def calc_avg_rtt(rtts: list):
+    if len(rtts) == 0: return 0
     sum = 0
     count = 0
     for rtt in rtts:
         count += 1
         sum += rtt
-    
+        
     return sum/count
 
 main()
