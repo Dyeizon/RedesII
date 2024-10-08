@@ -29,7 +29,7 @@ def ping(destination: socket, times: int):
         try:
             sleep(0.7)
             send_time = time()
-            destination.sendto(f'Ping seq={i} {datetime.now()}'.encode('utf-8'), (HOST, PORT))
+            destination.sendto(f'Ping seq={i} {int(datetime.now().timestamp())}'.encode('utf-8'), (HOST, PORT))
             sent_pkgs += 1
 
             signal.alarm(1)
@@ -79,7 +79,7 @@ def calc_avg_rtt(rtts: list):
     for rtt in rtts:
         count += 1
         sum += rtt
-        
+
     return sum/count
 
 main()

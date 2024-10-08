@@ -10,8 +10,11 @@ serverSocket = socket(AF_INET, SOCK_DGRAM)
 serverSocket.bind((HOST, PORT))
 print('Servidor rodando no endereço {0}:{1}'.format(HOST, PORT))
 
-def check_beat(last_ping: str) -> bool:
-    print(f'Agora: {datetime.now()} - Ping {last_ping}')
+def check_beat(seconds_difference: int, last_ping_timestamp: int) -> bool:
+    print(f'Agora: {datetime.now()} - Ping {datetime.fromtimestamp(last_ping_timestamp)}')
+
+    print('diff:', (datetime.now() - datetime.fromtimestamp(last_ping_timestamp)))
+    
     return True
 
 while True:
@@ -26,7 +29,9 @@ while True:
         continue
 
     message_splitted = message.decode('utf-8').split(' ')
-    last_ping = message_splitted[2] + ' ' + message_splitted[3]
-    check_beat(last_ping)
+    print(message_splitted)
+    last_ping_timestamp = int(message_splitted[2])
+
+    check_beat(5, last_ping_timestamp)
     
     serverSocket.sendto(message, address)
